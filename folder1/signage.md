@@ -1,75 +1,151 @@
-Certainly! Here's a refined and more technical version of your notes, with additional points to consider:
+spring:
+  application:
+    name: scs-100
 
----
+  cloud.stream:
+    bindings:
+      ##
+      inventoryChecking-out:
+        destination: scs-100.inventoryChecking
+      inventoryChecking-in:
+        destination: scs-100.inventoryChecking
+        group: ${spring.application.name}-inventoryChecking-group
+        consumer:
+          maxAttempts: 1 # on example we are simulating "out of stock" scenario, so there is no point for retrying after it failed in the first attempt
 
-### Issue Overview: Inconsistent Trade Attribute Signage between Systems
+      order-dlq:
+        destination: scs-100.ordering_dlq
 
-#### Context
-IBOR, a system handling both End-of-Day (EOD) and Intra-Day processes, is encountering issues due to inconsistencies in the trade attribute types sent by upstream systems. These discrepancies arise because one system sends trade attributes as "absolute" values while another sends them "with signage".
+      shipping-out:
+        destination: scs-100.shipping
+      shipping-in:
+        destination: scs-100.shipping
+        group: ${spring.application.name}-shipping-group
 
-#### Systems and Processes
-1. **EOD Process:**
-   - **Consumers:** Rosetta and SBS.
-   - **Issue:** A JIRA ticket has been raised concerning the discrepancies in trade attribute signage for EOD processes.
+    kafka:
+      bindings:
+        # If Inventory Checking fails
+        inventoryChecking-in.consumer:
+          enableDlq: true
+          dlqName: scs-100.ordering_dlq
+          autoCommitOnError: true
+          AutoCommitOffset: true
 
-2. **Intra-Day Process:**
-   - **Consumer Types:**
-     1. **PODS:** Receives real-time updates.
-     2. **Transaction Updates:** Sent to Regulatory Reporting systems.
+        # If shipping fails
+        shipping-in.consumer:
+          enableDlq: true
+          dlqName: scs-100.ordering_dlq
+          autoCommitOnError: true
+          AutoCommitOffset: true
 
-3. **Trade Flow for RIO:**
-   - Trades from Front Office systems (e.g., Salerio) are received as IMML (XML) messages.
-   - These trades are first processed by the TA Cache, then by the UM Listener.
-   - IBOR consistently receives trade attributes as "absolute" values due to upstream systems standardizing on this format.
+logging:
+  level:
+    com.ehsaniara.scs_kafka_intro: debug
+	
+	
+	import yaml
+import re
 
-#### IBOR Transaction Engine
-- **Configuration:** The IBOR Transaction Engine is configured to handle transactions by interpreting "absolute" values and determining directionality through internal rules.
-- **Process Flow:** 
-  - **Engine:** Receives "absolute" values.
-  - **Persistence:** Stores "absolute" values.
-  - **Dispatch:** Sends "absolute" values.
+# pip install pyyaml
+# python -m pip install --upgrade pip
+def parse_kafka_properties(file_path):
+    with open(file_path, 'r') as file:
+        config = yaml.safe_load(file)
 
-#### Comparison with Other Systems
-- **Rosetta:** Despite receiving signage from IBOR, Rosetta performs its own directionality checks to handle signage.
-- **iMOS:** Sends additional attributes with explicit signage at EOD (e.g., `FEE_AMOUNT` and `FEE_AMOUNT_PORTFOLIO_BASE_CCY`).
+    app_name = config.get('spring', {}).get('application', {}).get('name', 'unknown-app')
 
-#### Tactical Fix
-- **Dispatcher Service Enhancement:**
-  - Implement logic to calculate signage based on directionality.
-  - Introduce attribute versioning to distinguish between raw attributes and those with applied signage (e.g., `v0.1` for raw, incremented version for signed attributes).
+    bindings = config.get('spring', {}).get('cloud.stream', {}).get('bindings', {})
+    kafka_bindings = config.get('spring', {}).get('cloud.stream', {}).get('kafka', {}).get('bindings', {})
 
-- **EOD Processing:**
-  - Combine versioned attributes in the Dispatcher Service.
-  - For iMOS queries, return the latest version of attributes.
-  - For legacy consumers and key ledger calculations in IBOR, use the initial version of attributes.
+    producers = {}
+    consumers = {}
 
-#### Additional Points and Considerations
-1. **Consistency Across Systems:**
-   - Ensure that all upstream systems either standardize on sending "absolute" values or explicitly indicate signage.
-   - Investigate if upstream systems can adopt a unified approach to attribute signage.
+    for key, value in bindings.items():
+        if '-in' in key:
+            consumers[key] = {
+                'destination': value['destination'],
+                'group': value.get('group', None),
+                'dlq': kafka_bindings.get(f"{key}.consumer", {}).get('enableDlq', False)
+            }
+        elif '-out' in key:
+            producers[key] = {
+                'destination': value['destination']
+            }
 
-2. **Versioning Strategy:**
-   - Clearly document the versioning scheme and ensure it is consistently applied across all attributes and systems.
-   - Consider the impact of versioning on historical data and reporting.
+    return app_name, producers, consumers
 
-3. **Data Lineage and Auditing:**
-   - Implement robust data lineage and auditing mechanisms to track the transformation and versioning of attributes.
-   - Ensure traceability from the initial trade message through all processing stages.
+def display_kafka_links(app_name, producers, consumers):
+    print(f"Application Name: {app_name}")
+    print("\nProducers:")
+    for key, value in producers.items():
+        print(f"  - {key}:")
+        print(f"    Destination: {value['destination']}")
 
-4. **Impact on Downstream Systems:**
-   - Assess the impact of these changes on downstream systems consuming IBOR data.
-   - Communicate changes to all stakeholders and provide guidance on handling versioned attributes.
+    print("\nConsumers:")
+    for key, value in consumers.items():
+        print(f"  - {key}:")
+        print(f"    Destination: {value['destination']}")
+        print(f"    Group: {value['group']}")
+        print(f"    Dead Letter Queue: {'Enabled' if value['dlq'] else 'Disabled'}")
 
-5. **Testing and Validation:**
-   - Conduct comprehensive testing to validate the new signage calculation logic.
-   - Perform end-to-end testing across EOD and Intra-Day processes to ensure consistency and accuracy.
+    print("\nLinks:")
+    for prod_key, prod_value in producers.items():
+        for cons_key, cons_value in consumers.items():
+            if prod_value['destination'] == cons_value['destination']:
+                print(f"  - {prod_key} -> {cons_key}")
 
-6. **Documentation and Training:**
-   - Update all relevant documentation to reflect the new processes and versioning scheme.
-   - Provide training sessions for teams to familiarize them with the changes and their implications.
 
-By addressing these points, we can ensure a smooth transition to the new signage handling mechanism and minimize disruptions to the IBOR system and its consumers.
 
----
+def parse_kafka_streams_properties(file_path):
+    with open(file_path, 'r') as file:
+        config = yaml.safe_load(file)
 
-These notes should provide a comprehensive and clear understanding of the issue, the implemented solution, and additional considerations to ensure robustness and consistency in data handling.
+    app_name = config.get('spring', {}).get('application', {}).get('name', 'unknown-app')
+    bindings = config.get('spring', {}).get('cloud', {}).get('stream', {}).get('kafka', {}).get('streams', {}).get('bindings', {})
+    brokers = config.get('spring', {}).get('cloud', {}).get('stream', {}).get('kafka', {}).get('streams', {}).get('binder', {}).get('brokers', 'localhost:9092')
+
+    producers = {}
+    consumers = {}
+
+    for key, value in bindings.items():
+        if 'consumer' in value:
+            consumers[key] = {
+                'destination': value['consumer']['destination'],
+                'group': value['consumer'].get('group', None)
+            }
+        elif 'producer' in value:
+            producers[key] = {
+                'destination': value['producer']['destination']
+            }
+
+    return app_name, brokers, producers, consumers
+
+def display_kafka_streams_links(app_name, brokers, producers, consumers):
+    print(f"Application Name: {app_name}")
+    print(f"Brokers: {brokers}")
+    print("\nProducers:")
+    for key, value in producers.items():
+        print(f"  - {key}:")
+        print(f"    Destination: {value['destination']}")
+
+    print("\nConsumers:")
+    for key, value in consumers.items():
+        print(f"  - {key}:")
+        print(f"    Destination: {value['destination']}")
+        print(f"    Group: {value['group']}")
+
+    print("\nLinks:")
+    for prod_key, prod_value in producers.items():
+        for cons_key, cons_value in consumers.items():
+            if prod_value['destination'] == cons_value['destination']:
+                print(f"  - {prod_key} -> {cons_key}")
+
+# Specify the path to your application.yaml file
+file_path = 'application.yml'
+app_name, brokers, producers, consumers = parse_kafka_streams_properties(file_path)
+display_kafka_streams_links(app_name, brokers, producers, consumers)
+
+# Specify the path to your application.yaml file
+
+app_name, producers, consumers = parse_kafka_properties(file_path)
+display_kafka_links(app_name, producers, consumers)

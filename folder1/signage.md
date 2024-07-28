@@ -149,3 +149,4 @@ display_kafka_streams_links(app_name, brokers, producers, consumers)
 
 app_name, producers, consumers = parse_kafka_properties(file_path)
 display_kafka_links(app_name, producers, consumers)
+

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Rain</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            height: 100vh;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+        .banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(0, 255, 0, 0.8);
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            pointer-events: none;
+            user-select: none;
+            z-index: 2;
+            white-space: nowrap;
+            animation: glow 2s ease-in-out infinite alternate;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+            line-height: 1.2;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        .banner-line {
+            display: block;
+            font-size: 5vw;
+            font-weight: bold;
+            margin: 0.2em 0;
+        }
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+            }
+            to {
+                text-shadow: 0 0 20px rgba(0, 255, 0, 0.9), 0 0 30px rgba(0, 255, 0, 0.7);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">
+        <div class="banner-line">jAMS</div>
+        <div class="banner-line">Tech BYTES</div>
+    </div>
+    <canvas id="matrix"></canvas>
+    <script src="matrix.js"></script>
+</body>
+</html>

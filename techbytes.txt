@@ -1,0 +1,44 @@
+Hello hello , 
+
+As part of our mission to foster innovation and collaboration across AM services - affectionately known as jAMS - we launched Tech Bytes our weekly 30 mins session where team members(External speakers) share insights on the latest emerging technologies.
+
+Think of it as a knowledge sharing hub to keep us aligned with industry standards while keeping our skills razor-sharp 
+
+********
+okay - Just for fun lets assume its friday (not monday) and I have to confess In my mind my when I imagine fridays its something like this (here I start music and disco lights for around 5 seconds - Next show them the screen containing Matric style rain drop)
+
+***** I am sharing my screen now and hopefully you can all see our confluence page
+Please bear with me I will get to the Hall of FAME in a bit
+
+Ever have that moment when you are zoning out at your desk , dreaming of weekend plans, when suddenly you realize - BHAM!! - its Tech Bytes time? This Tech Bytes isnt your average meeting. As the great Morpheus from the Matrix movie would say - "you take the blue pill - the meeting ends, you go back to your desk and believe what you want to believe. You take the red pill - you stay in Tech Bytes and we will show you how deep the tech rabbit hole goes"
+
+WHAT HAVE WE DONE SO FAR
+as you can see we have big list but here are some  
+  * Agentic AI potential in Multi-Agents
+  * Deep Dive into AWS servless tools
+  * Gradio for Rapid ML prototyping
+  * Explored the world of FinOps
+  * Cursor AI, WindSurf , Devin
+  * Immersive web tech using AR/VR 
+  * Anthropic Model Context Protocol
+  
+UPCOMING SESSIONS
+  * Agent 2 Agent and MCP (external speaker)
+  * Transforming Unstructured data into Neo4J graph data for agentic RAG
+  * VR/XR using Unity
+  
+WHY IT MATTERS
+  
+Tech Bytes isnt just about learning ; its about building a culture of curiosity and friendly competition. By sharing expertise we reduce silos and prove that ‘alone we are smart, together we are genius.
+If you are passionate about a topic - whether its Quantum Computing, Streaming data using Flink or anything else we would love to have you present or join the audience. Lets keep growing
+ 
+We already have folks from other LOBs (CIB/CCB/Corporate sector/other AWM members, AI ignite community) join and show their interest. 
+Well I have to warn you Enrique/akvile/deepshika if this popularity continues , we might end up hosting Tech Bytes conference soon similar to AWS re:Invent or devUP so please think about this in next year budget planning (this bit is for humour)
+
+everyone is invited - join the fun by going to go/jams-techbytes  to subscribe to our newsletter one click go/jams-tb-subs 
+
+
+coming back to the hall of fame .(show the brownie points page) jAMS also have a Brownie Points page where we award Virtual brownie points to team members who contribute by adding great articles or provide handy technical tips or host a tech bytes sessions. As you can see the competition is serious and we already have Q1 and Q2 winners on the board
+
+Finally - remember - with great technology knowledge comes great responsibility. And great meme potential. See you friday, true believers (start music and disco lights)
+ 

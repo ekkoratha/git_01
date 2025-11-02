@@ -1,1 +1,386 @@
-test
+
+Prasanth <ekkoratha@googlemail.com>
+8:22 PM (7 minutes ago)
+to prasanth.ekkoratha
+
+project structure
+terraform-lambda-dynamodb-s3/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── lambda/
+│   └── lambda_function.py
+└── templates/
+    └── lambda_policy.json.tpl
+
+variables.tf
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "test"
+}
+
+variable "dynamodb_table_name" {
+  description = "Name of the DynamoDB table to read from"
+  type        = string
+  default     = "my-test-table"
+}
+
+variable "s3_bucket_name" {
+  description = "Name of the S3 bucket to write to"
+  type        = string
+  default     = "my-test-bucket-lambda-output"
+}
+
+variable "lambda_function_name" {
+  description = "Name of the Lambda function"
+  type        = string
+  default     = "dynamodb-to-s3-exporter"
+}
+
+
+main.tf
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+# S3 Bucket for Lambda output
+resource "aws_s3_bucket" "lambda_output" {
+  bucket = var.s3_bucket_name
+ 
+  tags = {
+    Environment = var.environment
+    Purpose     = "Lambda output storage"
+  }
+}
+
+# DynamoDB Table (example table - you might want to use an existing one)
+resource "aws_dynamodb_table" "source_table" {
+  name           = var.dynamodb_table_name
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# IAM Role for Lambda
+resource "aws_iam_role" "lambda_role" {
+  name = "${var.lambda_function_name}-role-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# IAM Policy for Lambda to access DynamoDB, S3, and CloudWatch Logs
+resource "aws_iam_policy" "lambda_policy" {
+  name        = "${var.lambda_function_name}-policy-${var.environment}"
+  description = "Policy for Lambda to read DynamoDB and write to S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:Scan",
+          "dynamodb:Query",
+          "dynamodb:GetItem",
+          "dynamodb:BatchGetItem",
+          "dynamodb:DescribeTable"
+        ]
+        Resource = [
+          aws_dynamodb_table.source_table.arn,
+          "${aws_dynamodb_table.source_table.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.lambda_output.arn,
+          "${aws_s3_bucket.lambda_output.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach policy to Lambda role
+resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.lambda_policy.arn
+}
+
+# Create Lambda function package
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/lambda_function.py"
+  output_path = "${path.module}/lambda/lambda_function.zip"
+}
+
+# Lambda Function
+resource "aws_lambda_function" "dynamodb_to_s3" {
+  filename         = data.archive_file.lambda_zip.output_path
+  function_name    = var.lambda_function_name
+  role            = aws_iam_role.lambda_role.arn
+  handler         = "lambda_function.lambda_handler"
+  runtime         = "python3.9"
+  timeout         = 300
+  memory_size     = 256
+
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE = var.dynamodb_table_name
+      S3_BUCKET      = var.s3_bucket_name
+    }
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.lambda_policy_attachment
+  ]
+}
+
+# CloudWatch Log Group for Lambda
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  name              = "/aws/lambda/${aws_lambda_function.dynamodb_to_s3.function_name}"
+  retention_in_days = 7
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# Optional: CloudWatch Event Rule to trigger Lambda periodically
+resource "aws_cloudwatch_event_rule" "daily_trigger" {
+  name                = "${var.lambda_function_name}-daily-trigger"
+  description         = "Trigger Lambda function daily"
+  schedule_expression = "rate(1 day)"
+}
+
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.daily_trigger.name
+  target_id = "Lambda"
+  arn       = aws_lambda_function.dynamodb_to_s3.arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.dynamodb_to_s3.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.daily_trigger.arn
+}
+
+
+******************
+lambdafunction.py
+import json
+import boto3
+from datetime import datetime
+import logging
+
+# Set up logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    """
+    Lambda function to read data from DynamoDB and write to S3
+    """
+    try:
+        # Initialize AWS clients
+        dynamodb = boto3.resource('dynamodb')
+        s3_client = boto3.client('s3')
+       
+        # Get environment variables
+        table_name = os.environ['DYNAMODB_TABLE']
+        bucket_name = os.environ['S3_BUCKET']
+       
+        logger.info(f"Reading from DynamoDB table: {table_name}")
+        logger.info(f"Writing to S3 bucket: {bucket_name}")
+       
+        # Get the DynamoDB table
+        table = dynamodb.Table(table_name)
+       
+        # Scan the table (for small tables) - for larger tables use pagination
+        response = table.scan()
+        items = response.get('Items', [])
+       
+        # Handle pagination if there are more items
+        while 'LastEvaluatedKey' in response:
+            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            items.extend(response.get('Items', []))
+       
+        logger.info(f"Retrieved {len(items)} items from DynamoDB")
+       
+        if not items:
+            logger.info("No items found in DynamoDB table")
+            return {
+                'statusCode': 200,
+                'body': json.dumps('No data to export')
+            }
+       
+        # Prepare data for S3
+        timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S')
+        s3_key = f"exports/dynamodb-export-{timestamp}.json"
+       
+        # Convert items to JSON
+        data_to_upload = {
+            'export_timestamp': timestamp,
+            'total_items': len(items),
+            'items': items
+        }
+       
+        # Upload to S3
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=s3_key,
+            Body=json.dumps(data_to_upload, indent=2),
+            ContentType='application/json'
+        )
+       
+        logger.info(f"Successfully uploaded {len(items)} items to s3://{bucket_name}/{s3_key}")
+       
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'Data exported successfully',
+                's3_location': f"s3://{bucket_name}/{s3_key}",
+                'items_exported': len(items)
+            })
+        }
+       
+    except Exception as e:
+        logger.error(f"Error in Lambda function: {str(e)}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'error': str(e),
+                'message': 'Failed to export data'
+            })
+        }
+
+
+output.tf
+output "lambda_function_arn" {
+  description = "ARN of the Lambda function"
+  value       = aws_lambda_function.dynamodb_to_s3.arn
+}
+
+output "lambda_function_name" {
+  description = "Name of the Lambda function"
+  value       = aws_lambda_function.dynamodb_to_s3.function_name
+}
+
+output "s3_bucket_name" {
+  description = "Name of the S3 bucket for output"
+  value       = aws_s3_bucket.lambda_output.bucket
+}
+
+output "dynamodb_table_name" {
+  description = "Name of the DynamoDB table"
+  value       = aws_dynamodb_table.source_table.name
+}
+
+output "cloudwatch_log_group" {
+  description = "CloudWatch Log Group for Lambda"
+  value       = aws_cloudwatch_log_group.lambda_log_group.name
+}
+
+TEst invoke lanbda
+# Invoke Lambda function manually
+aws lambda invoke \
+  --function-name $(terraform output -raw lambda_function_name) \
+  --payload '{}' \
+  response.json
+
+cat response.json
+
+adding test data to ddb
+aws dynamodb put-item \
+  --table-name $(terraform output -raw dynamodb_table_name) \
+  --item '{"id": {"S": "test1"}, "name": {"S": "John Doe"}, "age": {"N": "30"}}'
+
+aws dynamodb put-item \
+  --table-name $(terraform output -raw dynamodb_table_name) \
+  --item '{"id": {"S": "test2"}, "name": {"S": "Jane Smith"}, "age": {"N": "25"}}'
+
+check S3 output
+aws s3 ls s3://$(terraform output -raw s3_bucket_name)/exports/
+
+IAM Permissions: The Lambda needs:
+
+DynamoDB read permissions (Scan, Query, GetItem)
+
+S3 write permissions (PutObject)
+
+CloudWatch Logs for monitoring
+
+Resource Dependencies: Terraform automatically handles most dependencies, but we explicitly define some with depends_on
+
+Environment Variables: Pass table and bucket names as environment variables to the Lambda
+
+Error Handling: The Lambda includes proper error handling and logging
+
+Scalability: For large DynamoDB tables, consider using DynamoDB Streams or export features instead of scanning

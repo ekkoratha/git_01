@@ -1,0 +1,86 @@
+
+high avail : system which is operational without interruption for a long periods of time
+-----------------------------------------------------------------
+AVAIL-001 99.95%
+
+99% - 3d 15h 39m
+99.90% - 8h 54m 56s
+99.95% overall platform availability (≈ 21.9 min/mo)
+99.990% - 52m 35s
+99.9990% - 5m 15s
+99.99990% - 31s - 6 9s
+99.99999% -- 3s
+
+8 9s - 315 ms
+9 9s - 31 ms  downtime per year
+
+99.9999 = ([total time - downtime]/total time)* 100
+-----------------------------------------------------------------
+1) Availability, Reliability & Resilience
+ID	Detailed implementation / notes
+AVAIL-001	Target ≥99.95% platform availability. 1) Prefer managed services (S3, DynamoDB, SQS, SNS, Step Functions, Lambda, Athena). 2) Deploy compute (ECS services, Lambda) across ≥2 AZs; in Terraform set multiple subnets per service/task. 3) Configure ECS desiredCount ≥2, deploymentMinimumHealthyPercent ≥100, deploymentMaximumPercent ≤200. 4) Lambda: avoid single-AZ VPC subnets; spread across ≥2 AZs. 5) Eliminate regional singletons (see AVAIL-003). 6) Publish an availability SLO per tier; wire CloudWatch SLO metrics and error budget alarms.
+AVAIL-002	No AZ SPOF. 1) Subnet each tier across ≥2 AZs; route tables/NATs per AZ. 2) ALB/NLB target groups include targets in all AZs used. 3) Multi-AZ SQS/SNS/DynamoDB are native; ensure no dependency on single-AZ data stores (e.g., EFS in One-AZ mode). 4) Scale ECS tasks per AZ (capacity providers if on EC2). 5) Test AZ fail (disable one subnet, drain targets) and verify service health.
+AVAIL-003	No regional SPOF (NLB). 1) Stand up duplicate ingress stacks in secondary region (NLB/ALB, ECS service, health endpoints). 2) Place AWS Global Accelerator (GA) in front: TCP/HTTP listeners → regional endpoints (NLB/ALB). 3) Configure Route 53 failover/latency records to GA DNS (or directly to regional ALB/NLB if not using GA). 4) Health checks: /healthz on ECS; target 200/OK. 5) Document promote/demote steps in runbook.
+AVAIL-004	RTO ≤20m / RPO ≤10m (warm standby + manual failover). 1) Mirror IaC stacks in secondary with is_primary=false. 2) S3 CRR + RTC (DATA-001/002). 3) DynamoDB Global Tables (DATA-010). 4) Pre-provision minimal capacity; validate in monthly smoke tests. 5) Runbook: (a) freeze ingest, (b) verify CRR lag <10m, (c) promote secondary stack (Terraform workspace/var switch), (d) flip Route 53/GA, (e) resume ingest. 6) Drill quarterly; log actual RTO/RPO.
+AVAIL-005	AZ loss tolerance. 1) Over-provision N+1 capacity; set ECS autoscaling target tracking (CPU 50–60%) so one-AZ loss stays <80% utilization. 2) NAT gateways per AZ; configure route table per private subnet → local NAT. 3) Test: isolate one AZ (security group/route controls) and observe steady state.
+AVAIL-006	Degraded mode under control-plane impairments. 1) Buffer ingest to S3/SQS; allow offline processing catch-up. 2) All invokers use resilient retry/backoff (COMP-008). 3) Externalize state/checkpoints to DDB (AVAIL-007). 4) Implement feature flags to bypass non-critical enrichments. 5) Alerts on backlog (SQS ApproximateNumberOfMessages) with runbook to scale consumers.
+AVAIL-007	Recoverable Step Functions. 1) Model workflow checkpoints in DynamoDB Global Table (executionId, stage, cursor, ts). 2) Each task writes idempotent progress; failures recover from last checkpoint. 3) On DR, bootstrap new execution with cursor from DDB. 4) Use Step Functions Standard for audit-heavy flows; Express for short-lived (also checkpoint at stage boundaries).
+AVAIL-008	Optional DNS automation. 1) Route 53 health checks target public /healthz in primary; Failover record to secondary region/GA. 2) Health criteria: N consecutive 5xx or timeout (e.g., 3×30s). 3) Document TTLs (e.g., 30s) and cache behaviors; test cutover latency.
+2) Data Durability, Storage & Catalog
+ID	Detailed implementation / notes
+DATA-001	S3 versioning + KMS + RTC. 1) aws_s3_bucket_versioning enabled. 2) Default SSE-KMS (bucket policy forces s3:x-amz-server-side-encryption). 3) Bucket Keys to reduce KMS cost. 4) Replication configuration: enable Replication Time Control (RTC) and metrics; alarm when CRRTimeLag > 10m. 5) Enable S3 server access logs to a log bucket with Object Lock (if required).
+DATA-002	Unidirectional CRR. 1) Separate buckets/prefixes per region to avoid loops (eu-west-2 → eu-central-1 only). 2) Use replication rules scoped by prefix/tags; exclude athena-results/ etc. 3) Replicate delete markers only if policy requires. 4) Monitor BytesPendingReplication via S3 Replication metrics.
+DATA-3	Lifecycle policies. 1) Define class transition per zone (e.g., staging→IA at 30d; raw→Glacier at 180d). 2) Separate rules for non-current versions (e.g., expire after 365d). 3) Preserve compliance data via retention exceptions.
+DATA-004	Object Lock / Legal Hold (if regulated). 1) Create bucket with Object Lock enabled at creation (immutable). 2) Choose Compliance mode; set retention per class (e.g., 7y). 3) Enable MFA Delete on log/compliance buckets. 4) Document legal hold process and break-glass approvals.
+DATA-005	Hive partitions. 1) Store data as s3://bucket/zone/table/dt=YYYY-MM-DD/region=XX/.... 2) Use Parquet/ORC; avoid tiny files (target 128–512MB). 3) Writer jobs publish partition manifests or run Glue crawler on scoped prefixes.
+DATA-006	Schema evolution controls. 1) Adopt backward-compatible evolution (add optional columns). 2) Breaking changes → new table or versioned prefix v2/. 3) Enable Glue table/column versioning; document compatibility policy. 4) Provide “reader shielding” (views mapping old→new fields).
+DATA-007	Glue crawler scope & bookmarks. 1) One crawler per zone/table; restrict to exact prefixes. 2) Schedule post-ingest with sensible concurrency. 3) Glue ETL jobs enable bookmarks to skip processed keys. 4) Alarms on crawler failures; notify catalog owners.
+DATA-008	Athena workgroups & controls. 1) One workgroup per env/team; enforce encryption (SSE-KMS) for query results in a dedicated bucket. 2) Set data-scanned limits (GB/query, GB/day). 3) IAM policies restrict tables/catalogs per team. 4) Enable CloudWatch metrics for workgroup, alarm on budget breaches.
+DATA-009	CTAS/UNLOAD & Iceberg option. 1) Use CTAS to write optimized Parquet with compression (e.g., SNAPPY) and partition spec. 2) Use UNLOAD to export large result sets. 3) Evaluate Apache Iceberg in non-prod for update/merge/time-travel; store in dedicated lake/iceberg/ paths with Glue catalog integration.
+DATA-010	DynamoDB Global Tables + PITR. 1) Create table with on-demand or provisioned with autoscaling; enable PITR. 2) Convert to Global Table adding secondary region. 3) Keys: design for even distribution; use GSIs as needed. 4) Enable streams (NEW_AND_OLD_IMAGES) for checkpoint workflows; alarm on throttling (ThrottledRequests, ConsumedCapacity).
+3) Compute, Messaging & Orchestration
+ID	Detailed implementation / notes
+COMP-001	SQS DLQ & visibility. 1) For each queue, create a DLQ; set redrive policy (e.g., 5 attempts). 2) VisibilityTimeout = handler_max_time * 2. 3) Alarms on ApproximateNumberOfMessagesVisible (backlog) & ApproximateAgeOfOldestMessage.
+COMP-002	FIFO where ordering matters. 1) Create FIFO queue with content-based dedup or explicit MessageDeduplicationId. 2) Use MessageGroupId per key to preserve ordering. 3) Understand throughput caps of FIFO; shard groups if necessary.
+COMP-003	Idempotency. 1) Generate idempotency keys (file checksum, message GUID). 2) Maintain a DDB table processedKeys with TTL; check-and-set pattern. 3) Make all sinks idempotent (e.g., overwrite Parquet partition atomically; use temp path then rename).
+COMP-004	Lambda concurrency isolation. 1) Assign reserved concurrency for critical functions; set max concurrency via SQS event source (batch size + concurrency). 2) Use DLQ or on-failure destinations. 3) Alarms on Throttles, IteratorAge.
+COMP-005	ECS blue/green/canary. 1) If using CodeDeploy: configure traffic shifting (e.g., 10% → 50% → 100%) with automated rollback on 5xx/latency thresholds. 2) Health checks /healthz with low interval, few healthy thresholds. 3) Keep minHealthyPercent ≥100 to avoid capacity dips.
+COMP-006	Immutable task defs. 1) Version every change; pin image tags (digest preferred). 2) Sign artifacts in CI (e.g., cosign). 3) Block mutable latest tags via admission control (if using EKS) or policy.
+COMP-007	Step Functions mode choice. 1) Express for short/high-throughput; configure X-Ray tracing, failure destinations. 2) Standard when you need audit/history (retention up to 90 days). 3) Always implement checkpointing (AVAIL-007).
+COMP-008	Retry with backoff/jitter. 1) Use AWS SDK defaults + full jitter (e.g., 100ms→1s→…→30s). 2) Cap retries; send to DLQ after N attempts. 3) Make retries idempotent (COMP-003) to avoid duplicates.
+COMP-009	NLB vs ALB/API GW decision. 1) If TCP/TLS pass-through or static IPs required → NLB, add WAF is not available directly (needs ALB/API GW). 2) If L7 routing, auth, WAF, header/path routing required → ALB or API Gateway. 3) Document protocol, cipher policy, and access logs.
+COMP-010	Private subnets + VPC endpoints. 1) Create interface endpoints (Logs, STS, SQS, SNS, Glue, Step Functions) and gateway endpoints (S3, DynamoDB). 2) Update route tables to use endpoints; block 0.0.0.0/0 egress for workloads. 3) Validate with VPC flow logs that traffic stays private.
+4) Performance & Scalability
+ID	Detailed implementation / notes
+PERF-001	Auto-scaling pipelines. 1) ECS target tracking on CPU 50–60% or SQS depth (messages per task target). 2) Lambda with SQS event source auto-scales; set batch size and max concurrency to protect downstreams. 3) Size S3 request rate limits by partitioning prefixes.
+PERF-002	E2E latency <5m (baseline/tune). 1) Emit timestamps at each stage (ingest, raw, enriched) and compute DataFreshness metric. 2) Identify critical path; optimize Glue job memory/DPUs and Parquet file sizes. 3) Create budgets/alarms on p95 freshness.
+PERF-003	Athena concurrency control. 1) Per-team workgroups with EnforceWorkGroupConfiguration. 2) Set BytesScannedCutoffPerQuery and EngineVersion. 3) Educate users to CTAS optimized tables; block full-table scans in prod via lake governance.
+PERF-004	Hot-partition protection. 1) S3: hash-prefix keys or hourly date buckets to spread load. 2) DynamoDB: use composite keys; avoid monotonic partition keys; enable adaptive capacity monitoring. 3) Readers randomize list/prefix shards.
+5) Security, IAM & Compliance
+ID	Detailed implementation / notes
+SEC-001	Encryption everywhere. 1) S3 default SSE-KMS with bucket policy enforcement (aws:SecureTransport, s3:x-amz-server-side-encryption). 2) EBS encryption by default. 3) DynamoDB KMS CMK. 4) Enforce TLS 1.2+ on ALB/API GW; if NLB pass-through, terminate TLS at target with modern ciphers.
+SEC-002	Least privilege IAM. 1) Per-service IAM roles with minimal actions/resources and condition keys (e.g., aws:ResourceTag, s3:prefix). 2) Deny-by-default SCPs at OU level. 3) No static keys for workloads; use IAM roles. 4) Regular IAM Access Analyzer and policy linting in CI.
+SEC-003	Secrets Manager (optional). 1) Store external creds; enable rotation lambdas (e.g., 30d/90d). 2) Reference secrets via task env or Lambda env with KMS decrypt permission scoped to secret ARNs. 3) Avoid exporting secrets to logs.
+SEC-004	Audit & logging. 1) Org-level CloudTrail + data events on critical S3 prefixes. 2) Trail to immutable log bucket (versioning, Object Lock if required). 3) Centralize logs to a log account; use CloudWatch log retention (e.g., 90d hot, archive to S3). 4) Alerts on unusual API activity (GuardDuty, Detective optional).
+SEC-005	Retention. 1) Define per-log retention; e.g., CloudTrail 7 years, app logs 30–180d to CWL then S3 Glacier Deep Archive. 2) Formalize purge/hold process; align with legal/BOE.
+6) Observability & Reliability Engineering
+ID	Detailed implementation / notes
+OBS-001	Unified telemetry. 1) Emit OTel traces/metrics/logs from services; export to Dynatrace via OTel Collector. 2) Enable X-Ray for Lambda/Step Functions. 3) Create service map and golden-path traces; target ≥80% trace coverage.
+OBS-002	Golden signals & alarms. 1) CloudWatch alarms on: ECS HTTPCode_Target_5XX_Count, TargetResponseTime; Lambda Errors, Throttles, Duration; SQS backlog/age; DDB ThrottledRequests; S3 replication lag. 2) Wire to SNS/PagerDuty/Slack with on-call rotas.
+OBS-003	Business freshness metric. 1) Compute DataFreshness = now() - last_enriched_ts. 2) Dashboard per dataset/tenant; alarm on thresholds (e.g., p95 > 5m for 15m). 3) Include in weekly SLO review.
+OBS-004	Resilience patterns. 1) Implement circuit breakers (trip on error rate/latency), bulkheads (per-dependency pools), timeouts (finite), and hedging cautiously for idempotent reads. 2) Document fallback behavior per call.
+OBS-005	DR drills / chaos. 1) Quarterly game days: AZ isolation, control-plane impairment (e.g., disable Glue permissions), and regional failover. 2) Record measured RTO/RPO; file post-mortems; adjust runbooks and alarms.
+7) Infrastructure as Code, Change & Operations
+ID	Detailed implementation / notes
+OPS-001	Everything as code. 1) Terraform modules per domain (network, data, compute). 2) Environments via workspaces or separate state files. 3) Mandatory PR review, static checks (tflint, tfsec). 4) Store remote state in S3 with DynamoDB locking; encrypt with KMS.
+OPS-002	DR parameterization. 1) Single codebase; region-specific vars; is_primary toggles record weights, autoscaling targets, and scheduled events. 2) Pre-provision secondary at low min capacity; validate health.
+OPS-003	Runbooks. 1) Author step-by-step SOPs for: AZ loss, region failover, SQS drain, schema rollback, Athena budget breach. 2) Include who/when/rollback, screenshots/CLI commands, and validation steps. 3) Store in Confluence; link from alarms.
+OPS-004	Progressive delivery. 1) ECS CodeDeploy or deployment controller for blue/green; alarm-based auto-rollback. 2) Canary for Lambdas with Alias + weighted routing; rollback on 5xx/latency threshold breaches.
+8) Quota, Cost & Governance
+ID	Detailed implementation / notes
+GOV-001	Quota management. 1) Inventory quotas (Lambda concurrency, SQS inflight, Step Functions rate, DDB RCUs/WCUs, Athena concurrency). 2) Use Service Quotas and alarms when utilization >70%. 3) Pre-request production quota increases.
+GOV-002	Cost guardrails. 1) Athena: set workgroup budgets/limits; block expensive queries. 2) S3: enforce lifecycle to IA/Glacier; monitor Intelligent-Tiering if mixed access. 3) Cost Anomaly Detection to Slack with owners.
+GOV-003	Multi-account & SCPs. 1) Separate Prod/Non-Prod OUs. 2) Apply SCPs to block risky APIs (e.g., public S3 ACLs, disabling encryption, deleting CloudTrail). 3) Centralize logging/security accounts.
+GOV-004	Human access control. 1) Use IAM Identity Center (SSO) permission sets with least privilege and time-boxed elevation. 2) Enforce MFA. 3) Record approvals in ticketing system.
+GOV-005	Tagging. 1) Organization-wide tag policy; required keys: Owner, CostCenter, DataClassification, RTO, RPO, Environment, Application. 2) Use tag compliance reports; deny create without required tags via SCP if feasible.
+GOV-006	Data residency. 1) Classify datasets (EU/UK restricted vs global). 2) CRR and IAM boundary conditions to enforce residency. 3) Access logged and reviewed; geo-fencing via VPC endpoints and SCP conditions where applicable.

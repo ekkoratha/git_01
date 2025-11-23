@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matrix Rain</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix"></canvas>
+  <script>
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Characters - Katakana, Latin, numbers
+    const chars = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const fontSize = 18;
+    const columns = Math.floor(window.innerWidth / fontSize);
+    // Array of drop positions for each column
+    const drops = Array(columns).fill(1);
+
+    function draw() {
+      // Black BG with slight opacity for trail effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = fontSize + 'px monospace';
+      ctx.fillStyle = '#0F0';
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        // Reset drop to top randomly after it goes off screen
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+    setInterval(draw, 33); // ~30fps
+  </script>
+</body>
+</html> 

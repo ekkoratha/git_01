@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "is_active": true,
+    "email": "john.doe@example.com",
+    "employees": [
+      {
+        "id": 101,
+        "name": "Alice Smith",
+        "department": "Engineering",
+        "salary": 75000
+      },
+      {
+        "id": 102,
+        "name": "Bob Johnson",
+        "department": "Marketing",
+        "salary": 65000
+      }
+    ],
+    "projects": [
+      {
+        "project_id": "P001",
+        "project_name": "Website Redesign",
+        "status": "completed",
+        "team_size": 5
+      },
+      {
+        "project_id": "P002",
+        "project_name": "Mobile App Launch",
+        "status": "in_progress",
+        "team_size": 8
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Jane Roe",
+    "is_active": false,
+    "email": "jane.roe@example.com",
+    "employees": [],
+    "projects": []
+  }
+]

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Rain</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <script>
+	document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas to full window size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Matrix characters - taken from the Japanese Katakana set
+    const matrix = "アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン";
+    const fontSize = 18;
+    const columns = Math.floor(canvas.width / fontSize);
+    
+    // Set up the drops array
+    const drops = [];
+    for (let i = 0; i < columns; i++) {
+        drops[i] = Math.floor(Math.random() * -100);
+    }
+
+    // Set the font style
+    ctx.font = `${fontSize}px monospace`;
+    
+    // Set the text color (green)
+    const colors = ['#0F0', '#0A0', '#0D0', '#0C0'];
+    
+    // Draw the characters
+    function draw() {
+        // Black background with some opacity to create trail effect
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Loop over drops
+        for (let i = 0; i < drops.length; i++) {
+            // Random character to print
+            const text = matrix[Math.floor(Math.random() * matrix.length)];
+            
+            // Random color from our palette
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillStyle = color;
+            
+            // Draw the character
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            
+            // Reset drop to top when it reaches bottom or randomly
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            
+            // Move the drop down
+            drops[i]++;
+        }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        // Recalculate columns
+        columns = Math.floor(canvas.width / fontSize);
+        // Reset drops array
+        drops.length = 0;
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.floor(Math.random() * -100);
+        }
+    });
+
+    // Animation loop
+    setInterval(draw, 33); // ~30 FPS
+});
+
+	</script>
+</body>
+</html>

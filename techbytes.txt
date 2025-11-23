@@ -1,0 +1,155 @@
+Many developers try to build retrieval-augmented generation (RAG) experiences to interact with information from unstructured data using only vector search and struggle to get to the results that they want. 
+Looking only at text fragments without context only gets you so far. As usual in data engineering, there are more opens in new tabadvanced patterns for preprocessing the data and extracting knowledge, one of which is GraphRAG. 
+
+Knowledge graphs are more than just interesting data visualizations. 
+Well, a knowledge graph essentially is a structured representation of facts and also relationships
+
+within a specific domain.
+
+So this actually enables machines to understand and reason about the world in a way similar to us humans
+They’re also extremely effective as a data source for RAG (Retrieval-Augmented Generation), and can significantly improve LLM responses when compared to vector RAG
+
+Ques: Where are the used in real life?
+They are used in many different industries and also many different applications that you might have
+
+heard of, such as search engines, recommendation systems, and artificial intelligence AI.
+
+
+Entity   --- Edge/relationship --> entity
+
+Entity  
+   attribute 1
+   attrubute 2
+   ...
+   
+structute
+***********
+
+  Graph based structure: Nodes, edges , to model real work knowledge
+  Ontology: Schema that defintes the type of entities, relationship and attributes
+  Taxonomy is the hierarchical classification of those entities that we have.
+
+Nodes --> entities or instance
+Edges --> the relationship between entities
+Labels: tags assigned to nodes and edges to define their type
+Properotie
+
+how to construct KG?
+********************
+manual curation: manual input of data into graph
+Automation extractions  using NLP to extract the info from unstructured dat about
+Crowdsourcing: input from a large number of sources to populate and refine the graph
+
+KG Applcications
+***************
+search engines: google KG
+recommendation systems : personalised recommendations ..(relationship between entities)
+data integrations: combine data from various sources into one framework
+AI and ML : enhance machine understanding
+
+building a KG 
+**************
+So you see here Albert again as the focus as the subject here the main node, you can see that he is
+
+related to physics because he "(studied)" physics.
+
+Albert also "won" Nobel Prize in physics and he was "(born in)" Germany and also "(died in)" the USA.
+
+
+
+
+Tech and languagges
+**********
+RDF (resource desc framework)
+SPARQL(SAPRQL protocol and RDF Query language)
+OWL (Web ontology language)
+Neo4J
+many more..
+
+
+Neo4j graph database
+********
+
+Neo4j's is a graph database.
+Now here are some key concepts.
+
+Well of course there is nodes relationships of course.
+
+properties, labels.
+
+And most importantly we have Cypher which is the query language used to interact with the graph data.
+
+Components of a Neo4j graph
+**************************
+The components of Neo4j used to define the graph data model include: 
+
+Nodes: Fundamental entities in Neo4j representing individual data points. They serve as the building blocks of the graph and can store information through properties. 
+Labels: Labels categorize nodes, providing a way to organize and group related entities. Nodes can have one or more labels, defining their roles or characteristics within the graph. 
+Relationships: Relationships define directional connections between nodes, representing meaningful associations within the data. They allow the modeling of real-world connections, such as friendships, dependencies, or transactions. 
+Properties: Key-value pairs associated with nodes and relationships. Nodes can have properties that describe their attributes, while relationships can have properties to capture details about the connection. Properties enable the storage of additional information about the entities and connections in the graph. 
+
+```
+CREATE
+  (bb:Show {title: "Breaking Bad"}),
+  (crime:Genre {name: "Crime Drama"}),
+
+  (walter:Character {name: "Walter White"}),
+  (jesse:Character {name: "Jesse Pinkman"}),
+  (skyler:Character {name: "Skyler White"}),
+  (hank:Character {name: "Hank Schrader"}),
+
+  (walter)-[:APPEARS_IN]->(bb),
+  (jesse)-[:APPEARS_IN]->(bb),
+  (skyler)-[:APPEARS_IN]->(bb),
+  (hank)-[:APPEARS_IN]->(bb),
+
+  (bb)-[:HAS_GENRE]->(crime),
+
+  (walter)-[:PARTNER]->(jesse),
+  (walter)-[:MARRIED_TO]->(skyler),
+  (skyler)-[:SIBLING_IN_LAW]->(hank),
+  (hank)-[:INVESTIGATES]->(walter);
+```
+
+You should see the new node and relationship types appear on the left sidebar. Now run a query to show all the nodes and relationships.
+
+MATCH (n)-[r]->(m)
+RETURN n, r, m
+
+Ok, Neo4j is up and running. Now clear out the database so we can start fresh in the next section.
+
+MATCH (n) DETACH DELETE n
+
+dding the Neo4j MCP Server
+Since Claude Desktop is running locally, we can connect to any local server also running on the same machine, without having to expose it to the internet.
+
+That will open up the folder containing the claude_desktop_config.json file. Open it with any text editor, and paste in the MCP config from the mcp-neo4j-cypher server.
+
+{
+  "mcpServers": {
+    "neo4j-aura": {
+      "command": "uvx",
+      "args": [
+        "mcp-neo4j-cypher@0.2.2",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "YOUR_PASSWORD",
+        "NEO4J_DATABASE": "neo4j"
+      }
+    }
+  }
+}
+
+nter your Neo4j password in place of YOUR_PASSWORD and then save the file.
+
+Next, install the uvx Python library if not already installed.
+
+pip install --user pipx
+pipx install uvx            
+pipx ensurepath
+
+

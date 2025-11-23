@@ -1,0 +1,39 @@
+{
+  "name": "John Doe",
+  "age": 30,
+  "employees1": [
+    {
+      "id": 101,
+      "department": "Engineering",
+      "studies": [1,2,3]
+    },
+    {
+      "id": 102,
+      "department": "Marketing"
+    }
+  ],
+  "projects4": [
+    {
+      "project_id": "P001",
+      "status": "completed"
+    },
+    {
+      "project_id": "P002",
+      "status": "in_progress"
+    }
+  ],
+  "projects3": [
+    {
+      "project_id": "P003",
+      "status": "completed"
+    },
+    {
+      "project_id": "P004",
+      "status": "in_progress"
+    },
+    {
+      "project_id": "P005",
+      "status": "failed"
+    }
+  ]
+}

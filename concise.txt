@@ -1,0 +1,49 @@
+1. Advanced knowledge in one or more technical domains as recognized by peers or management
+    i. Recognized as a domain expert in emerging technologies, with applied research in hybrid quantum-classical algorithms for portfolio optimization.
+   ii. Founded and leads the 'jAMS TechBytes' series, educating an average of 20+ peers weekly across JPM LOBs on trends like AR/VR/XR, Agentic AI and Knowledge Graphs.
+  iii. His work fosters a culture of innovation beyond his immediate responsibilities, as recognized by peers and management.
+
+2. Consistent high performance in relation to peers
+    i. Consistently operates at a level exceeding his grade as a pivotal architect on the high-impact AM RIO program.
+   ii. Regularly interfaces with and earns positive feedback from a wide range of senior stakeholders (engineers, product, program leads) across AM and CIB.
+  iii. Effectively influences strategic direction and delivery beyond his immediate reporting lines.
+
+3. Makes continuous learning and skills building a priority
+   i. Champions continuous learning, recently earning the demanding AWS Solutions Architect Professional certification.
+  ii. Simultaneously founded and leads the jAMS TechBytes series to explore and share knowledge on frontier technologies.
+ iii. This builds upon his proven ability to apply complex concepts, such as reinforcement learning in the AWS Deep Racer program.
+
+4. Passionate about technology, a curious mind
+   i. His innate passion is demonstrated by voluntary projects like his 2024 Hackathon win, using 'Space Invaders' to model Complex Event Processing with Apache Flink.
+  ii. He consistently channels curiosity into knowledge sharing, delivering demos on AR/VR/XR and Agentic AI through TechBytes.
+ iii. His enthusiasm for the "art of the possible" inspires colleagues and fosters a innovative mindset within the team.
+
+5. Open to receive and act on growth-oriented feedback
+   i. Exemplifies a growth mindset by actively seeking, internalizing, and acting on constructive feedback.
+  ii. Based on stakeholder input, he now proactively champions the Architecture Catalog as the single source of truth, educating teams on its value.
+ iii. He has consciously elevated his strategic voice in program discussions, a change noted and appreciated by his manager and stakeholders.
+
+6. Demonstrate influence and impact
+   i. Strategically, his architectural designs on AM RIO are directly reducing technical debt and manual processes, leading to tangible gains in efficiency and risk reduction.
+  ii. Culturally, his expertise is sought after for mentorship (Sandesh, Ritu), and he shapes firm-wide tech culture through TechBytes and as London Lead for IGNITE Quantum.
+ iii. Externally, he influences the industry as a selected speaker at the global DEVUP conference (2024 & 2026), raising the firm's profile.
+
+7. Clearly articulates strategic initiatives and  models open and transparent dialogue with stakeholders
+   i. He has institutionalized clear articulation and transparent dialogue through his disciplined stewardship of the AM RIO Architecture Catalog.
+  ii. This year, he has managed approximately 30 catalog items, facilitating rigorous, cross-domain stakeholder discussions for each.
+ iii. This process ensures robust designs and models a collaborative approach before seeking ratification at the IDA forum.
+
+8. Evidence of contribution outside of immediate areas/ collaborations across teams and with stake holders
+   i. Demonstrates a strong commitment to firm-wide collaboration well beyond his immediate responsibilities.
+  ii. Actively builds bridges across LOBs through initiatives like the jAMS TechBytes series and his leadership in the global IGNITE Quantum community.
+ iii. His cross-functional engagement is further evidenced by his role as a tech lead in Code for Good and as a speaker at the global DEVUP conference.
+
+9. Contributing to success of others 
+   i. Dedicated to elevating others through formal mentorship of team members like Sandesh and Ritu (during her initial phase of MSc program).
+  ii. Creates platforms for collective growth, such as serving as a tech lead for Code for Good and founding the jAMS TechBytes series.
+ iii. He is consistently sought out for practical advice on challenges from AWS architecture to CI/CD, enabling success across the organization.
+
+10. is Expert engineer (E2) going to help the candidate
+   i. Prasanth has already proven himself as an expert engineer through consistent, high-impact contributions.
+  ii. The E2 program is the crucial catalyst required to forge him into a strategic technology leader for the entire firm.
+ iii. This investment will leverage his deep skills to solve pressing challenges, elevate our technology practice, and drive measurable business transformation.

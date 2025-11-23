@@ -1,0 +1,37 @@
+#spring:
+#  application:
+#    name: kafka-streams-csv-processor
+#  kafka:
+#    bootstrap-servers: localhost:9092
+#    properties:
+#      spring.json.trusted.packages: "*"
+#    streams:
+#      application-id: json-to-csv-processor
+#      properties:
+#        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+#        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+#        commit.interval.ms: 1000
+#
+#logging:
+#  level:
+#    com.example.kafkastreams: INFO
+
+spring:
+  application:
+    name: json-to-csv-streams
+
+  kafka:
+    bootstrap-servers: localhost:9092   # or your broker
+    streams:
+      application-id: json-to-csv-app
+      bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+csv:
+  output-dir: output
+
+kafka:
+  topics:
+    json-input: json-input
+

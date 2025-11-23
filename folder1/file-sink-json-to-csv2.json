@@ -1,0 +1,42 @@
+{
+  "name": "json-to-csv-file-sink",
+  "config": {
+    "connector.class": "org.apache.kafka.connect.file.FileSinkConnector",
+    "tasks.max": "1",
+
+    "topics": "json-input",
+
+    "file": "/data/output/output.csv",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+
+    "value.converter": "io.confluent.connect.csv.CsvConverter",
+    "value.converter.schemas.enable": "false",
+
+    "transforms": "flatten",
+    "transforms.flatten.type": "com.example.kafka.transforms.FlattenNestedJsonTransform$Value",
+
+    "errors.tolerance": "all",
+    "errors.deadletterqueue.topic.name": "json-to-csv-dlq",
+    "errors.deadletterqueue.context.headers.enable": "true",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true"
+  }
+}
+
+{
+  "name": "json-csv-advanced",
+  "config": {
+    "connector.class": "FileStreamSink",
+    "tasks.max": "1",
+    "topics": "user-topic",
+    "file": "/tmp/users.csv",
+    "transforms": "toCsv",
+    "transforms.toCsv.type": "com.example.kafka.transforms.FlattenNestedJsonTransform",
+    "transforms.toCsv.fields": "user.id,user.name,address.street,address.city,scores[0],scores[1],tags",
+    "transforms.toCsv.delimiter": "|",
+    "transforms.toCsv.handle.arrays": "concat",
+    "transforms.toCsv.array.delimiter": ",",
+    "transforms.toCsv.null.value": ""
+  }
+}

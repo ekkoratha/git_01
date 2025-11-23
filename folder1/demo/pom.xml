@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<!--
+        Spring Boot 4 parent POM
+        - Manages most versions for you via dependency management (BOM)
+    -->
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.0</version>
+		<relativePath/>
+	</parent>
+
+	<groupId>com.example</groupId>
+	<artifactId>demo</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>demo</name>
+	<description>Demo project for Spring Boot</description>
+
+	<properties>
+		<!-- Java version for `maven-compiler-plugin` -->
+		<java.version>17</java.version>
+
+		<!--
+            Kafka Streams version.
+            You can remove this + the explicit <version> tags below
+            if you prefer to let Spring Boot manage the Kafka versions.
+        -->
+		<kafka.version>3.4.0</kafka.version>
+	</properties>
+
+	<dependencies>
+
+		<!-- ===================== CORE RUNTIME ===================== -->
+
+		<!-- Core Spring Boot (logging, autoconfiguration, etc.) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+
+		<!-- Web / REST (Spring MVC + embedded Tomcat + JSON mapping support) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- (Optional but recommended) Bean Validation support (@Valid, @NotNull, etc.) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- ===================== KAFKA RUNTIME ===================== -->
+
+		<!-- Spring for Apache Kafka (brings kafka-clients etc.) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-kafka</artifactId>
+		</dependency>
+
+		<!-- Kafka Streams runtime (for your Kafka Streams topology code) -->
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-streams</artifactId>
+			<version>${kafka.version}</version>
+		</dependency>
+
+		<!-- ===================== JSON / CSV ===================== -->
+
+		<!--
+            JSON support:
+            - spring-boot-starter-web already wires JSON converters
+            - spring-boot-starter-json adds classic com.fasterxml.jackson.* API
+              which you are using in JsonFileKafkaProducer
+        -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-json</artifactId>
+		</dependency>
+
+		<!-- CSV handling for your CsvRecordProcessor -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.10.0</version>
+		</dependency>
+
+		<!-- ===================== OPENAPI / SWAGGER UI ===================== -->
+
+		<!-- OpenAPI 3 + Swagger UI for /swagger-ui.html & /v3/api-docs -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.6.0</version>
+		</dependency>
+
+		<!-- ===================== TEST DEPENDENCIES ===================== -->
+
+		<!--
+            Spring Boot test stack:
+            - JUnit 5
+            - Mockito
+            - AssertJ
+            - @SpringBootTest
+            - basic MockMvc support, etc.
+        -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!--
+            MVC test slice for Spring Boot 4:
+            - @WebMvcTest
+            - MockMvc auto-config in tests
+        -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!--
+            Kafka Streams Test Utilities:
+            - TopologyTestDriver
+            - TestInputTopic
+            - TestOutputTopic
+        -->
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-streams-test-utils</artifactId>
+			<version>${kafka.version}</version>
+<!--			<scope>test</scope>-->
+		</dependency>
+
+		<!--
+            NOTE:
+            - No need to add mockito-core or junit:junit manually.
+              Both are already pulled in by spring-boot-starter-test.
+        -->
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Spring Boot plugin (repackage to executable jar, etc.) -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

@@ -1,0 +1,133 @@
+mvn archetype:generate -DgroupId=com.example.kafka -DartifactId=flatten-smt -Dversion=1.0.0 -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+
+mvn clean compile -Dmaven.compiler.source=11 -Dmaven.compiler.target=11 -Dmaven.compiler.release=11
+
+#####################################
+#
+# how to get to SHELL from Docker 
+docker exec -it kafka bash
+kafka
+#
+####################################
+
+###################################
+#
+# stopping compose 
+docker-compose down
+
+# starting compose 
+docker-compose up -d
+#---------------------------------------
+
+# OR 
+
+# Start services one by one
+#
+docker-compose up -d zookeeper
+docker-compose up -d broker
+# Wait 30 seconds
+docker-compose up -d schema-registry kafka-connect
+#
+#---------------------------------------
+
+
+####################################
+#
+# If containers exist but are stopped, start them
+docker-compose start
+#
+#
+###########################################
+
+# to find all running services
+# Check all containers (including stopped ones)
+docker-compose ps -a
+
+# Or check Docker directly
+docker ps -a
+#
+#######################################
+
+#####################
+#
+#  finding PORT
+docker port broker
+#
+############################
+
+########################################
+#
+#  LOGS
+docker-compose logs
+
+docker-compose logs kafka-connect --tail=50
+
+#
+########################################
+
+########################################
+#
+#  create 2 topics "json-iput" & "json-to-csv-dl1"
+#
+c:\kafka-json-to-csv>docker exec -it broker kafka-topics --create --topic json-input --bootstrap-server broker:9092  --replication-factor 1 --partitions 1
+Created topic json-input.
+
+c:\kafka-json-to-csv>docker exec -it broker kafka-topics --create --topic json-to-csv-dlq --bootstrap-server broker:9092   --replication-factor 1 --partitions 1
+Created topic json-to-csv-dlq.
+
+#
+#########################################
+
+###
+# show topics
+
+c:\kafka-json-to-csv>docker-compose exec broker kafka-topics --list --bootstrap-server broker:9092
+__consumer_offsets
+_schemas
+json-input
+json-to-csv-dlq
+
+##################################
+# Delete a specific topic
+docker-compose exec broker kafka-topics --delete --topic aa-input --bootstrap-server broker:9092
+
+*****************************
+** the below commnd didnt work
+curl -X POST -H "Content-Type: application/json" --data @file-sink-json-to-csv.json  http://localhost:8083/connectors
+
+the above command didnt WORK
+*
+**************************************
+
+**************************************
+but the below command didnt
+curl -X POST -H "Content-Type: application/json" --data @test-transform.json http://localhost:8083/connectors
+
+
+to check you can try in browser http://localhost:8083/connectors
+
+or try this on command line
+c:\kafka-json-to-csv>curl http://localhost:8083/connectors/test-json-transform/status
+{"name":"test-json-transform","connector":{"state":"RUNNING","worker_id":"172.18.0.5:8083"},"tasks":[{"id":0,"state":"RUNNING","worker_id":"172.18.0.5:8083"}],"type":"sink"}
+c:\kafka-json-to-csv>
+
+
+
+TROUBLESHOOTING
+
+----------------
+c:\kafka-json-to-csv>docker-compose up -d
+unable to get image 'confluentinc/cp-schema-registry:7.5.0': error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.48/images/confluentinc/cp-schema-registry:7.5.0/json": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+
+c:\kafka-json-to-csv>
+
+ensure DOCKER DESTOP is running 
+---------------------------------------
+
+
+
+
+########
+docker-compose stop kafka-connect
+docker-compose rm -f kafka-connect
+docker-compose up -d kafka-connect
